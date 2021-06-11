@@ -1,0 +1,3 @@
+# Aerial
+
+Python package manager
