@@ -101,7 +101,7 @@ instruction = sys.argv[0]
 filename = sys.argv[1] if len(sys.argv) == 2 else ''
 
 # CHANGE IP TO SERVER IP
-BASE_URL = "http://54.198.67.193:3000/api/"
+BASE_URL = "http://localhost:3000/api/"
 UPLOAD = "UploadPermission"
 DOWNLOAD = "DownloadPermission"
 CHECKFILESIZE = "CheckMaxFileSize"
