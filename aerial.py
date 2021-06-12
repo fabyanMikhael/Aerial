@@ -3,6 +3,12 @@ import requests, sys, time
 import json, logging, os
 from zipfile import ZipFile
 
+os.system("color")
+COLOR_GREEN = "\u001b[32m"
+COLOR_CYAN = "\u001b[36m"
+COLOR_END = "\x1b[0m"
+COLOR_RED_PINK = "\u001b[38;5;197m" 
+
 def rem_suffix(self, txt):
     if self.endswith(txt):
         self = self[:-(len(txt))]
@@ -15,6 +21,28 @@ def upload(object_name : str, response):
         files = {'file': (object_name, f)}
         http_response = requests.post(response['url'], data=response['fields'], files=files)
 
+def DownloadFile(file_name, link):
+    with open(file_name, "wb") as f:
+        print(f"Downloading {COLOR_RED_PINK}{rem_suffix(file_name, '.zip')}{COLOR_END} package")
+        response = requests.get(link, allow_redirects=True, stream=True)
+        total_length = response.headers.get('content-length')
+
+        if total_length is None: # no content length header
+            f.write(response.content)
+        else:
+            dl = 0
+            total_length = int(total_length)
+            for data in response.iter_content(chunk_size=4096):
+                dl += len(data)
+                f.write(data)
+                done = int(50 * dl / total_length)
+                cl_s = ""
+                cl_e = ""
+                if done == 50:
+                    cl_s = "\u001b[32m"
+                    cl_e = "\x1b[0m"
+                sys.stdout.write(("\r[%s\x1b[0m%s]" % ('\u001b[32m=' * done, ' ' * (50-done))) + f" {cl_s}{dl * 100 / total_length : .2f} % {cl_e} " )    
+                sys.stdout.flush()
 
 def GetHumanReadable(size,precision=2):
     suffixes=['B','Kb','Mb','Gb','Tb']
@@ -73,7 +101,7 @@ instruction = sys.argv[0]
 filename = sys.argv[1] if len(sys.argv) == 2 else ''
 
 # CHANGE IP TO SERVER IP
-BASE_URL = "http://localhost:3000/api/"
+BASE_URL = "http://54.198.67.193:3000/api/"
 UPLOAD = "UploadPermission"
 DOWNLOAD = "DownloadPermission"
 CHECKFILESIZE = "CheckMaxFileSize"
@@ -89,18 +117,19 @@ if instruction.lower() == "upload":
         os.remove(filename)
         exit()
 
-    version = input("version: ")
+    version = input(f"version: {COLOR_RED_PINK}")
     if version == "" or version == None:
         Error()
 
     dependencies = []
-    print("Dependencies (enter to stop listing): ")
+    print(f"{COLOR_GREEN}Dependencies {COLOR_CYAN}(enter to stop listing):{COLOR_CYAN} ")
     while True:
-        dep = input("->")
+        dep = input(f"{COLOR_END}->{COLOR_RED_PINK}")
         if dep == None or dep == "":
             break
+        dep = dep.strip()
         dependencies.append(dep)
-
+    print(COLOR_END)
 
     time_ = time.time()
     TXT = requests.get(f"{BASE_URL}{UPLOAD}", data=json.dumps({'file' : filename, 'info':{"version" : version, "dependencies" : dependencies}})).text 
@@ -108,23 +137,22 @@ if instruction.lower() == "upload":
     REQ = json.loads(TXT)
     try:
         upload(filename,REQ)
-        print(f"\nSuccessfully uploaded {rem_suffix(filename,'.zip')} package ({GetHumanReadable(os.path.getsize(filename))}).\n took {time.time() - time_:.2f} seconds!")
+        print(f"\nSuccessfully uploaded {COLOR_RED_PINK}{rem_suffix(filename,'.zip')}{COLOR_END} package {COLOR_CYAN}({GetHumanReadable(os.path.getsize(filename))}){COLOR_END}.\n took {COLOR_GREEN}{time.time() - time_:.2f}{COLOR_END} seconds!")
     except:
-        print(f"\nError: file {rem_suffix(filename,'.zip')} ({GetHumanReadable(File_size)}) was unable to be uploaded. (file size might be too large)")
+        print(f"\nError: file {rem_suffix(filename,'.zip')} {COLOR_CYAN}({GetHumanReadable(File_size)}){COLOR_END} was unable to be uploaded. (file size might be too large)")
     os.remove(filename)
 
 if instruction.lower() == "install":
     time_ = time.time()
     TXT = requests.get(f"{BASE_URL}{DOWNLOAD}", data=filename).text 
     CheckForError(TXT)
-    r = requests.get(str(TXT), allow_redirects=True)
     filename += ".zip"
-    open(filename, 'wb').write(r.content)
+    DownloadFile(filename, str(TXT))
     with ZipFile(filename, 'r') as zip:
         zip.extractall(path='packages/'+rem_suffix(filename,".zip"))
     File_size = GetHumanReadable(os.path.getsize(filename))
     os.remove(filename)
-    print(f"\nSuccessfully installed {rem_suffix(filename,'.zip')} package ({File_size}). \ntook {time.time() - time_:.2f} seconds!")
+    print(f"\nSuccessfully installed {COLOR_RED_PINK}{rem_suffix(filename,'.zip')}{COLOR_END} package {COLOR_CYAN}({File_size}){COLOR_END}. \ntook {COLOR_GREEN}{time.time() - time_:.2f}{COLOR_END} seconds!")
 
 if instruction.lower() == "info":
     TXT = requests.get(f"{BASE_URL}{PACKAGEINFO}", data=filename).text
@@ -142,7 +170,7 @@ if instruction.lower() == "all":
     TXT = requests.get(f"{BASE_URL}{ALLPACKAGES}").text
     CheckForError(TXT)
     packages = json.loads(TXT)
-    print(f"~~~~~~~Packages (total: {len(packages)})~~~~~~~")
+    print(f"{COLOR_GREEN}~~~~~~~{COLOR_CYAN}Packages (total: {len(packages)}){COLOR_GREEN}~~~~~~~{COLOR_END}")
     for key in packages:
-        print(f"{key}: {packages[key]}")
-    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print(f"{key}: {COLOR_RED_PINK}{packages[key]}{COLOR_END}")
+    print(f"{COLOR_GREEN}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{COLOR_END}")
